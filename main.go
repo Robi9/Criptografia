@@ -29,7 +29,10 @@ func main() {
     for {
     	fmt.Println("Digite a entrada desejada: ")
 	    fmt.Scanf("%s", &name)
-	    i := verificaPalavra([]byte(name),[]byte(decoded),0)
+
+	    nameHex:= encodeHexBytes([]byte(name))
+
+	    i := verificaPalavra([]byte(nameHex),[]byte(decoded),0)
 	    if i != 0 {
     		fmt.Println("Erro na verifica Palavra")
     	}
@@ -48,7 +51,7 @@ func verificaPalavra(palavra, texto []byte, indice int) (int){
 		}
 		res,_:= fixedXorDecrypt(txt, palavra)
 
-		palavraE, _ := regexp.MatchString(`^[a-zA-Z.,:;?!]+$`, string(res))
+		palavraE, _ := regexp.MatchString(`^[a-zA-Z.,:;?! ]+$`, string(res))
 		
 		if(palavraE == true){
 			
