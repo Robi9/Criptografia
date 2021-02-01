@@ -47,7 +47,7 @@ func verificaPalavra(palavra, texto []byte, indice int) (int){
 		
 		var txt, novoTexto []byte
 		var frase []string
-		
+
 		for i:=0; i < tam; i++{
 			txt = append(txt, texto[i])
 		}
@@ -56,7 +56,7 @@ func verificaPalavra(palavra, texto []byte, indice int) (int){
 		palavraE, _ := regexp.MatchString(`^[a-zA-Z.,:;?! ]+$`, string(res))
 		j := indice;
 		if(palavraE == true){
-			for i := 0; i < len(texto); i++ {
+			for i := 0; i < 76; i++ {
 				if i == j {
 					//for j < len(res){
 						frase = append(frase, string(res))
