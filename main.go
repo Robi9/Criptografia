@@ -30,9 +30,10 @@ func main() {
     	fmt.Println("Digite a entrada desejada: ")
 	    fmt.Scanf("%s", &name)
 
-	    nameHex:= encodeHexBytes([]byte(name))
+	    nameHex := encodeHexBytes([]byte(name))
+	    nameByte,_ := decodeHexBytes([]byte(nameHex))
 
-	    i := verificaPalavra([]byte(nameHex),[]byte(decoded),0)
+	    i := verificaPalavra(nameByte,[]byte(decoded),0)
 	    if i != 0 {
     		fmt.Println("Erro na verifica Palavra")
     	}
@@ -45,20 +46,31 @@ func verificaPalavra(palavra, texto []byte, indice int) (int){
 		tam := len(palavra)
 		
 		var txt, novoTexto []byte
-
+		var frase []string
+		
 		for i:=0; i < tam; i++{
 			txt = append(txt, texto[i])
 		}
 		res,_:= fixedXorDecrypt(txt, palavra)
 
 		palavraE, _ := regexp.MatchString(`^[a-zA-Z.,:;?! ]+$`, string(res))
-		
+		j := indice;
 		if(palavraE == true){
-			
-			fmt.Printf("[%d]mensagem: %s \n",indice,string(res))
+			for i := 0; i < len(texto); i++ {
+				if i == j {
+					//for j < len(res){
+						frase = append(frase, string(res))
+						
+					//}
+				}else{
+					frase = append(frase, "_")
+				}
+			}
+				
+			fmt.Printf("[%d]frase: %s \n",indice,frase)
 		}
 
-		for i:=tam; i <= len(texto)-1; i++{
+		for i:=1; i < len(texto); i++{
 			novoTexto = append(novoTexto, texto[i])
 		}
 		
