@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"strings"
 	"errors"
-	//"encoding/base64"
 	"regexp"
 	"log"
 )
@@ -16,58 +15,100 @@ func main() {
     
 	Arquivo01 := os.Args[1] //texto01
 	Arquivo02 := os.Args[2] //texto02
-	var name string
+	var opc int
+	var nameByte, textoClaro1, textoClaro2 []byte
 
 	texto01 := lerArquivo(Arquivo01)
 	texto02 := lerArquivo(Arquivo02)
 
-	inp1, _:= decodeHexBytes([]byte(strings.Join(texto01, "")))   
-    inp2, _ := decodeHexBytes([]byte(strings.Join(texto02, "")))
+	textoEncriptado1, _:= HexForBytes([]byte(strings.Join(texto01, "")))   
+    textoEncriptado2, _ := HexForBytes([]byte(strings.Join(texto02, "")))
 
-    decoded, _ := fixedXorDecrypt(inp1, inp2) //xor das duas strings encriptadas
+    decoded, _ := XorBytes(textoEncriptado1, textoEncriptado2) //xor das duas strings encriptadas
+	for len(textoClaro1) != 76{
 
-    for {
-    	fmt.Println("Digite a entrada desejada: ")
-	    fmt.Scanf("%s", &name)
+    	fmt.Println("Digite sua entrada: ")
+    	scanner := bufio.NewScanner(os.Stdin)
+	    scanner.Scan()
+	    line := scanner.Text()
 
-	    nameHex := encodeHexBytes([]byte(name))
-	    nameByte,_ := decodeHexBytes([]byte(nameHex))
+	    nameHex := BytesForHex([]byte(line))
+	    nameByte,_ = HexForBytes([]byte(nameHex))   
+	
+		textoClaro1,textoClaro2 = verificaPalavra(nameByte,[]byte(decoded),0)
+		
+	    if len(textoClaro1) == 76 {
+			fmt.Printf("\nDeseja gerar chave dessa frase? Se sim digite 1, se nao digite 2.\n")
+			fmt.Scanf("%d", &opc)
+			if opc == 1{ //GERAÇÃO DE CHAVE
 
-	    i := verificaPalavra(nameByte,[]byte(decoded),0)
-	    if i != 0 {
-    		fmt.Println("Erro na verifica Palavra")
-    	}
-    }     
+				chave1,_ := XorBytes(textoEncriptado1,textoClaro1)
+				chave2,_ := XorBytes(textoEncriptado2,textoClaro2)
+
+				if Equal(chave1,chave2) {
+
+					final := BytesForHex([]byte(chave1))
+					fmt.Printf("\nCHAVE: %s\n",string(final))
+					break
+				}else{
+					chave1,_ := XorBytes(textoEncriptado1,textoClaro2)
+					chave2,_ := XorBytes(textoEncriptado2,textoClaro1)
+
+					if Equal(chave1,chave2) == false{
+						fmt.Printf("Erro em gerar chave!")
+						break
+					}
+
+					final := BytesForHex([]byte(chave1))
+					fmt.Printf("\nCHAVE: %s\n",string(final))
+					break
+				}
+			}
+		}else{
+			textoClaro1 = []byte("")
+		}
+	}	
 }
 
-func verificaPalavra(palavra, texto []byte, indice int) (int){
+func Equal(a, b []byte) bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for i, v := range a {
+        if v != b[i] {
+            return false
+        }
+    }
+    return true
+}
+
+func verificaPalavra(palavra, texto []byte, indice int) ([]byte,[]byte){
 	indice += 1 
+	var frase []string
+	var frs []byte
 	if len(palavra) <= len(texto){
 		tam := len(palavra)
 		
 		var txt, novoTexto []byte
-		var frase []string
+		var i int 
 
 		for i:=0; i < tam; i++{
 			txt = append(txt, texto[i])
 		}
-		res,_:= fixedXorDecrypt(txt, palavra)
+		res,_:= XorBytes(txt, palavra)
 
 		palavraE, _ := regexp.MatchString(`^[a-zA-Z.,:;?! ]+$`, string(res))
 		j := indice;
 		if(palavraE == true){
-			for i := 0; i < 76; i++ {
+			for i = 1; i <= 76; i++ {
 				if i == j {
-					//for j < len(res){
-						frase = append(frase, string(res))
-						
-					//}
-				}else{
-					frase = append(frase, "_")
+					frase = append(frase, string(res))
 				}
+				frs = []byte(strings.Join(frase, ""))
 			}
-				
-			fmt.Printf("[%d]frase: %s \n",indice,frase)
+			fmt.Printf("\n--------Possiveis resultados para sua entrada--------\n")
+			fmt.Printf("\n[%d]frase:%s\n",indice,strings.Join(frase, ""))
+			return frs, palavra		
 		}
 
 		for i:=1; i < len(texto); i++{
@@ -75,12 +116,12 @@ func verificaPalavra(palavra, texto []byte, indice int) (int){
 		}
 		
 		if tam > len(texto) {
-			return 0
+			return frs, palavra
 		}
 
 		return verificaPalavra(palavra, novoTexto,indice)
 	}
-	return 0
+	return frs, palavra
 }
 
 func lerArquivo(arquivo string) ([]string){
@@ -100,7 +141,7 @@ func lerArquivo(arquivo string) ([]string){
 	return linhasArquivo
 }
 
-func decodeHexBytes(hexBytes []byte) ([]byte, error) {
+func HexForBytes(hexBytes []byte) ([]byte, error) {
    ret := make([]byte, hex.DecodedLen(len(hexBytes)))
    _, err := hex.Decode(ret, hexBytes)
    if err != nil {
@@ -108,12 +149,12 @@ func decodeHexBytes(hexBytes []byte) ([]byte, error) {
    }
    return ret, nil
 }
-func encodeHexBytes(input []byte) []byte {
+func BytesForHex(input []byte) []byte {
     ret := make([]byte, hex.EncodedLen(len(input)))
     hex.Encode(ret, input)
     return ret
 }
-func fixedXorDecrypt(input1, input2 []byte) ([]byte, error) {
+func XorBytes(input1, input2 []byte) ([]byte, error) {
     if len(input1) != len(input2) {
         return nil, errors.New("As entradas devem ter o mesmo tamanho.")
     }
@@ -122,22 +163,4 @@ func fixedXorDecrypt(input1, input2 []byte) ([]byte, error) {
          ret[i] = input1[i] ^ input2[i]
     }
     return ret, nil
-}
-
-
-func salvarTexto(texto string, NomeArquivo string) (error){
-
-	//var linhas []string
-	arquivo, err := os.Create(NomeArquivo)
-	if err != nil {//
-		log.Fatalf("Erro:", err)
-	}
-
-	defer arquivo.Close()
-	escritor := bufio.NewWriter(arquivo)
-	//for _, linha := range linhas {
-		fmt.Fprint(escritor, texto) 
-	//}
-	fmt.Fprintln(escritor,"")
-	return escritor.Flush()
 }
